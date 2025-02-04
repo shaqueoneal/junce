@@ -2,19 +2,62 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const { init: initDB, Counter } = require("./db");
+const { init: initDB, Counter, pool } = require("./db");
+const router = express.Router();
 
-const logger = morgan("tiny");
+
+const { authMiddleware } = require('./middlewares/auth');
+const responseWrapper = require('./middlewares/responseWrapper');
+const userRoutes = require('./routes/userRoutes');
+const caseRoutes = require('./routes/caseRoutes');
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(cors());
+
+// 自定义 morgan 格式
+morgan.token('request-body', (req) => JSON.stringify(req.body));
+morgan.token('response-body', (req, res) => res.responseBody);
+
+// 创建详细的日志格式
+const logger = morgan((tokens, req, res) => {
+    return [
+        `\nMethod: ${tokens.method(req, res)}`,
+        `URL: ${tokens.url(req, res)}`,
+        `Status: ${tokens.status(req, res)}`,
+        `Request Body: ${tokens['request-body'](req, res)}`,
+        `Response Body: ${tokens['response-body'](req, res)}`,
+        `Time: ${tokens['response-time'](req, res)} ms\n`
+    ].join('\n');
+});
 app.use(logger);
+
+// 中间件
+app.use(authMiddleware);
+// app.use(responseWrapper);
+
+// 路由
+app.use('/api', userRoutes);
+app.use('/api', caseRoutes);
+
+// 错误处理
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: '服务器内部错误' });
+});
 
 // 首页
 app.get("/", async (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// 首页
+app.get("/api", async (req, res) => {
+  res.send({
+    header: req.headers,
+    get:req.query
+  })
 });
 
 // 更新计数

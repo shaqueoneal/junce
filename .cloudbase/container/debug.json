@@ -1,0 +1,45 @@
+{
+  "containers": [
+    {
+      "name": "junce",
+      "domain": "",
+      "ip": "",
+      "containerId": "fe12fbda7578040b59fc14ca869f16ea8ccb10503129fccd8ecec460667915ef"
+    }
+  ],
+  "config": {
+    "junce": {
+      "containerPort": 80,
+      "dockerfilePath": "Dockerfile",
+      "buildDir": "",
+      "minNum": 0,
+      "maxNum": 5,
+      "cpu": 1,
+      "mem": 2,
+      "policyType": "cpu",
+      "policyThreshold": 80,
+      "policyDetails": [
+        {
+          "PolicyType": "cpu",
+          "PolicyThreshold": 80
+        },
+        {
+          "PolicyType": "mem",
+          "PolicyThreshold": 80
+        }
+      ],
+      "envParams": {
+        "MYSQL_USERNAME": "admin",
+        "MYSQL_PASSWORD": "123456",
+        "MYSQL_ADDRESS": "192.168.1.3:3306"
+      },
+      "customLogs": "stdout",
+      "initialDelaySeconds": 2,
+      "dataBaseName": "nodejs_demo",
+      "executeSQLs": [
+        "CREATE DATABASE IF NOT EXISTS nodejs_demo;",
+        "USE nodejs_demo;"
+      ]
+    }
+  }
+}
