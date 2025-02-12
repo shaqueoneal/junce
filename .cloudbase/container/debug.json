@@ -4,7 +4,7 @@
       "name": "junce",
       "domain": "",
       "ip": "",
-      "containerId": "fe12fbda7578040b59fc14ca869f16ea8ccb10503129fccd8ecec460667915ef"
+      "containerId": "a70c9df7ab8046df697ae8cfac7f4cce9164823b4aa61b298cd478d0088866e0"
     }
   ],
   "config": {
@@ -29,9 +29,9 @@
         }
       ],
       "envParams": {
-        "MYSQL_USERNAME": "admin",
-        "MYSQL_PASSWORD": "123456",
-        "MYSQL_ADDRESS": "192.168.1.3:3306"
+        "MYSQL_USERNAME": "root",
+        "MYSQL_PASSWORD": "Zw47XX0()",
+        "MYSQL_ADDRESS": "10.2.106.5:3306"
       },
       "customLogs": "stdout",
       "initialDelaySeconds": 2,

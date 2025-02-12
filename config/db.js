@@ -6,6 +6,8 @@ const { MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_ADDRESS = "" } = process.env;
 
 const [host, port] = MYSQL_ADDRESS.split(":");
 
+// console.log('MYSQL Conn:', MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_ADDRESS, host,port);
+
 // 数据库连接配置
 const pool = mysql.createPool({
   host, // '10.2.106.5'

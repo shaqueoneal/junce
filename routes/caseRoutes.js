@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const caseService = require('../services/caseService');
-const { checkAdmin } = require('../middlewares/auth');
+const { checkAudit } = require('../middlewares/auth');
 
 // 搜索案件
 router.post('/cases/search', async (req, res) => {
@@ -17,9 +17,8 @@ router.post('/cases/search', async (req, res) => {
 // 获取心愿清单
 router.post('/cases/wish', async (req, res) => {
     try {
-        const { keyword, pageNum, pageSize } = req.body;
-        const result = await caseService.getWishCases(keyword, pageNum, pageSize);
-        console.log('result:', result);
+        const { keyword, page_num, page_size } = req.body;
+        const result = await caseService.getWishCases(keyword, page_num, page_size);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -29,8 +28,8 @@ router.post('/cases/wish', async (req, res) => {
 // 获取最新提交
 router.post('/cases/recent', async (req, res) => {
     try {
-        const { keyword, pageNum, pageSize } = req.body;
-        const result = await caseService.getRecentCases(keyword, pageNum, pageSize);
+        const { keyword, page_num, page_size } = req.body;
+        const result = await caseService.getRecentCases(keyword, page_num, page_size);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -50,8 +49,8 @@ router.post('/cases/last_chosen', async (req, res) => {
 // 获取进行中案件
 router.post('/cases/going', async (req, res) => {
     try {
-        const { keyword, pageNum, pageSize } = req.body;
-        const result = await caseService.getGoingCases(keyword, pageNum, pageSize);
+        const { keyword, page_num, page_size } = req.body;
+        const result = await caseService.getGoingCases(keyword, page_num, page_size);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -61,8 +60,8 @@ router.post('/cases/going', async (req, res) => {
 // 获取已完成案件
 router.post('/cases/finished', async (req, res) => {
     try {
-        const { keyword, pageNum, pageSize } = req.body;
-        const result = await caseService.getFinishedCases(keyword, pageNum, pageSize);
+        const { keyword, page_num, page_size } = req.body;
+        const result = await caseService.getFinishedCases(keyword, page_num, page_size);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -73,8 +72,20 @@ router.post('/cases/finished', async (req, res) => {
 router.post('/cases/my', async (req, res) => {
     try {
         const user_id = req.headers['x-wx-openid'];
-        const { status, pageNum, pageSize } = req.body;
-        const result = await caseService.getMyCases(user_id, status, pageNum, pageSize);
+        const { status, page_num, page_size } = req.body;
+        const result = await caseService.getMyCases(user_id, status, page_num, page_size);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 获取审核案件列表
+router.post('/cases/audit', async (req, res) => {
+    try {
+        const user_id = req.headers['x-wx-openid'];
+        const { status, page_num, page_size } = req.body;
+        const result = await caseService.getAuditCases(user_id, status, page_num, page_size);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -84,7 +95,27 @@ router.post('/cases/my', async (req, res) => {
 // 成功维权案件结果列表
 router.get('/cases/results', async (req, res) => {
     try {
-        const result = await caseService.getSuccessResults(req.body);
+        const result = await caseService.getSuccessCasesResult(req.body);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 更新案件状态
+router.post('/cases/:case_id/status', checkAudit, async (req, res) => {
+    try {
+        const result = await caseService.updateCaseStatus(req.body);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 获取案件流转记录状态
+router.get('/cases/:case_id/status_log', async (req, res) => {
+    try {
+        const result = await caseService.getCaseStatusLog(req.params.case_id);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -92,27 +123,13 @@ router.get('/cases/results', async (req, res) => {
 });
 
 // 获取案件详情
-router.get('/cases/:id', async (req, res) => {
+router.get('/cases/:case_id', async (req, res) => {
     try {
-        console.log('case_id:', req.params.id);
-        const caseData = await caseService.getCaseById(req.params.id);
+        console.log('case_id:', req.params.case_id);
+        const caseData = await caseService.getCaseById(req.params.case_id);
         res.json(caseData);
     } catch (error) {
         res.status(404).json({ message: error.message });
-    }
-});
-
-// 更新案件状态（仅管理员）
-router.patch('/cases/:id/status', checkAdmin, async (req, res) => {
-    try {
-        const { status } = req.body;
-        await caseService.updateCaseStatus(req.params.id, status);
-        res.json({
-            success: true,
-            message: '案件状态更新成功'
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
     }
 });
 
@@ -121,10 +138,18 @@ router.post('/cases', async (req, res) => {
     try {
         const user_id = req.headers['x-wx-openid'];
         const result = await caseService.createCase({...req.body, user_id});
-        res.status(201).json({
-            success: true,
-            case_id: result.case_id
-        });
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 更新案件
+router.put('/cases/:case_id', async (req, res) => {
+    try {
+        const user_id = req.headers['x-wx-openid'];
+        const result = await caseService.updateCase({...req.body, user_id});
+        res.json(result);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

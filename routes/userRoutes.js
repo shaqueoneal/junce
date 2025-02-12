@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const userService = require('../services/userService');
-const { checkAdmin, checkSuperAdmin } = require('../middlewares/auth');
+const { checkAudit, checkAdmin } = require('../middlewares/auth');
 
 // 创建用户
 router.post('/users', async (req, res) => {
@@ -40,9 +40,9 @@ router.get('/users/info', async (req, res) => {
 });
 
 // 获取单个用户信息
-router.get('/users/:id', async (req, res) => {
+router.get('/users/:user_id', async (req, res) => {
     try {
-        const user = await userService.getUserById(req.params.id);
+        const user = await userService.getUserById(req.params.user_id);
         res.json(user);
     } catch (error) {
         res.status(404).json({ message: error.message });
@@ -51,9 +51,9 @@ router.get('/users/:id', async (req, res) => {
 
 
 // 更新用户信息
-router.put('/users/:id', async (req, res) => {
+router.put('/users/:user_id', async (req, res) => {
     try {
-        await userService.updateUser(req.params.id, req.body);
+        await userService.updateUser(req.params.user_id, req.body);
         res.json({
             success: true,
             message: '用户信息更新成功'
@@ -64,9 +64,9 @@ router.put('/users/:id', async (req, res) => {
 });
 
 // 删除用户
-router.delete('/users/:id', checkAdmin, async (req, res) => {
+router.delete('/users/:user_id', checkAdmin, async (req, res) => {
     try {
-        await userService.deleteUser(req.params.id);
+        await userService.deleteUser(req.params.user_id);
         res.json({
             success: true,
             message: '用户删除成功'
@@ -77,10 +77,10 @@ router.delete('/users/:id', checkAdmin, async (req, res) => {
 });
 
 // 设置/取消管理员权限
-router.patch('/users/:id/admin', checkSuperAdmin, async (req, res) => {
+router.patch('/users/:user_id/admin', checkAdmin, async (req, res) => {
     try {
         const { is_admin } = req.body;
-        await userService.updateAdminStatus(req.params.id, is_admin);
+        await userService.updateAdminStatus(req.params.user_id, is_admin);
         res.json({
             success: true,
             message: `${is_admin ? '设置' : '取消'}管理员权限成功`

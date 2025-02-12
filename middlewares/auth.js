@@ -39,6 +39,26 @@ const authMiddleware = async (req, res, next) => {
     }
 };
 
+const checkAudit = async (req, res, next) => {
+    try {
+        const userId = req.headers['x-wx-openid'];
+        const [audit] = await pool.query(
+            'SELECT is_audit FROM users WHERE id = ? AND is_audit = true OR is_audit = true',
+            [userId]
+        );
+
+        console.log('audit:', audit);
+
+        if (audit.length === 0) {
+            return res.status(403).json({ message: '需要审核员权限' });
+        }
+        next();
+    } catch (error) {
+        console.log('checkAudit:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 const checkAdmin = async (req, res, next) => {
     try {
         const adminId = req.headers['admin-id'];
@@ -56,25 +76,8 @@ const checkAdmin = async (req, res, next) => {
     }
 };
 
-const checkSuperAdmin = async (req, res, next) => {
-    try {
-        const adminId = req.headers['admin-id'];
-        const [admin] = await pool.query(
-            'SELECT is_admin FROM users WHERE id = ? AND is_admin = true',
-            [adminId]
-        );
-
-        if (admin.length === 0) {
-            return res.status(403).json({ message: '需要超级管理员权限' });
-        }
-        next();
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
 module.exports = {
+    checkAudit,
     checkAdmin,
-    checkSuperAdmin,
     authMiddleware
 };
