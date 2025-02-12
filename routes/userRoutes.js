@@ -8,7 +8,7 @@ const { checkAudit, checkAdmin } = require('../middlewares/auth');
 router.post('/users', async (req, res) => {
     try {
         const result = await userService.createUser(req.body);
-        res.status(201).json({
+        res.status(200).json({
             success: true,
             message: '用户创建成功',
             user_id: result.id

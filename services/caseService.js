@@ -87,8 +87,22 @@ class CaseService {
                     [caseId, proof.url, proof.type || 'image']
                 );
             }
-
+        
             await conn.commit();
+
+            // 更新用户信息
+            const values = [];
+            phone && values.push(phone);
+            claimant_name && values.push(claimant_name);
+    
+            await conn.query(
+                `UPDATE users SET 
+                ${phone ? 'phone = ?,' : ''}
+                ${claimant_name ? 'claimant_name = ?,' : ''}
+                updated_at = NOW() WHERE id = ?`,
+                values.concat([user_id])
+            );
+
             return { case_id: caseId };
         } catch (error) {
             console.error('Error in createCase:', error);
@@ -123,7 +137,7 @@ class CaseService {
 
             // 准备 SQL 语句
             const caseSql = `
-            SELECT c.*, u.nickname, u.avatar_url 
+            SELECT c.*, u.nick_name, u.avatar_url 
             FROM cases c 
             LEFT JOIN users u ON c.user_id = u.id 
             WHERE c.id = ?`;
@@ -180,6 +194,20 @@ class CaseService {
             }
 
             await conn.commit();
+
+            // 更新用户信息
+            const values = [];
+            phone && values.push(phone);
+            claimant_name && values.push(claimant_name);
+    
+            await conn.query(
+                `UPDATE users SET 
+                ${phone ? 'phone = ?,' : ''}
+                ${claimant_name ? 'claimant_name = ?,' : ''}
+                updated_at = NOW() WHERE id = ?`,
+                values.concat([user_id])
+            );
+            
             return { success: true, case_id: id };
         } catch (error) {
             console.error('Error in updateCase:', error);
@@ -195,7 +223,7 @@ class CaseService {
         try {
             // 准备 SQL 语句
             const caseSql = `
-            SELECT c.*, u.nickname, u.avatar_url 
+            SELECT c.*, u.nick_name, u.avatar_url 
             FROM cases c 
             LEFT JOIN users u ON c.user_id = u.id 
             WHERE c.id = ?`;
@@ -554,7 +582,7 @@ class CaseService {
 
     async searchCases({ filters = [], page_num = 1, page_size = 30 }) {
         let query = `
-            SELECT c.*, u.nickname, u.avatar_url 
+            SELECT c.*, u.nick_name, u.avatar_url 
             FROM cases c 
             LEFT JOIN users u ON c.user_id = u.id
             WHERE 1=1

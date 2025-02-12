@@ -11,14 +11,14 @@ const authMiddleware = async (req, res, next) => {
 
         // 检查用户是否存在，不存在则创建
         const [existing] = await pool.query(
-            'SELECT id, nickname, avatar_url FROM users WHERE id = ?',
+            'SELECT id, nick_name, avatar_url FROM users WHERE id = ?',
             [userId]
         );
 
         if (existing.length === 0) {
             // 创建新用户
             await pool.query(
-                'INSERT INTO users (id, nickname, created_at) VALUES (?, ?, NOW())',
+                'INSERT INTO users (id, nick_name, created_at) VALUES (?, ?, NOW())',
                 [userId, `用户${userId.slice(-6)}`] // 使用ID后6位作为默认昵称
             );
         }

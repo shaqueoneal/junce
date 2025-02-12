@@ -3,8 +3,7 @@
     {
       "name": "junce",
       "domain": "",
-      "ip": "",
-      "containerId": "a70c9df7ab8046df697ae8cfac7f4cce9164823b4aa61b298cd478d0088866e0"
+      "ip": ""
     }
   ],
   "config": {
@@ -31,7 +30,8 @@
       "envParams": {
         "MYSQL_USERNAME": "root",
         "MYSQL_PASSWORD": "Zw47XX0()",
-        "MYSQL_ADDRESS": "10.2.106.5:3306"
+        "MYSQL_ADDRESS": "10.2.106.5:3306",
+        "LOG_LEVEL": "debug"
       },
       "customLogs": "stdout",
       "initialDelaySeconds": 2,

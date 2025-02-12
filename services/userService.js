@@ -3,7 +3,7 @@ const pool = require('../config/db');
 
 class UserService {
     async createUser(userData) {
-        const { id, nickname, avatar_url, phone, is_admin, is_audit } = userData;
+        const { id, nick_name, avatar_url, claimant_name, phone, is_admin, is_audit } = userData;
         const conn = await pool.getConnection();
         try {
             // 检查用户ID是否已存在
@@ -18,8 +18,8 @@ class UserService {
 
             // 插入新用户
             await conn.query(
-                'INSERT INTO users (id, nickname, avatar_url, phone, is_admin, is_audit) VALUES (?, ?, ?, ?, ?, ?)',
-                [id, nickname, avatar_url, phone, is_admin || false, is_audit || false]
+                'INSERT INTO users (id, nick_name, claimant_name, avatar_url, phone, is_admin, is_audit) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [id, nick_name, avatar_url, phone, is_admin || false, is_audit || false]
             );
 
             return { id };
@@ -35,7 +35,7 @@ class UserService {
         const offset = (page - 1) * limit;
         try {
             const [users] = await conn.query(
-                'SELECT id, nickname, avatar_url, phone, is_admin, is_audit, created_at, updated_at FROM users WHERE is_alive=1 LIMIT ? OFFSET ?',
+                'SELECT id, nick_name, avatar_url, claimant_name, phone, is_admin, is_audit, created_at, updated_at FROM users WHERE is_alive=1 LIMIT ? OFFSET ?',
                 [parseInt(limit), offset]
             );
     
@@ -59,7 +59,7 @@ class UserService {
         const conn = await pool.getConnection();
         try {
             const [user] = await conn.query(
-                'SELECT id, nickname, avatar_url, phone, is_admin, is_audit, created_at, updated_at FROM users WHERE id = ? AND is_alive = 1',
+                'SELECT id, nick_name, avatar_url, claimant_name, phone, is_admin, is_audit, created_at, updated_at FROM users WHERE id = ? AND is_alive = 1',
                 [id]
             );
     
@@ -76,12 +76,24 @@ class UserService {
     }
 
     async updateUser(id, userData) {
-        const { nickname, avatar_url, phone } = userData;
+        const { nick_name, avatar_url, phone, claimant_name } = userData;
         const conn = await pool.getConnection();
+
+        const values = [];
+        nick_name && values.push(nick_name);
+        avatar_url && values.push(avatar_url);
+        phone && values.push(phone);
+        claimant_name && values.push(claimant_name);
+
         try {
             await conn.query(
-                'UPDATE users SET nickname = ?, avatar_url = ?, phone = ?, updated_at = NOW() WHERE id = ?',
-                [nickname, avatar_url, phone, id]
+                `UPDATE users SET 
+                ${nick_name ? 'nick_name = ?,' : ''} 
+                ${avatar_url ? 'avatar_url = ?,' : ''} 
+                ${phone ? 'phone = ?,' : ''}
+                ${claimant_name ? 'claimant_name = ?,' : ''}
+                updated_at = NOW() WHERE id = ?`,
+                values.concat([id])
             );
     
             return { success: true };

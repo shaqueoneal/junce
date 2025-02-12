@@ -22,6 +22,7 @@ services:
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=Zw47XX0()
       - MYSQL_ADDRESS=10.2.106.5:3306
+      - LOG_LEVEL=info
 networks:
   default:
     external:
