@@ -102,6 +102,40 @@ router.get('/cases/results', async (req, res) => {
     }
 });
 
+// 获取未读案件数量
+router.get('/cases/unread_count', async (req, res) => {
+    try {
+        const user_id = req.query.user_id;
+        console.log('req.query:', req.query);
+        const result = await caseService.getMyUnreadCasesCount(user_id);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 获取待审计案件数量
+router.get('/cases/audit_count', checkAudit, async (req, res) => {
+    try {
+        const user_id = req.query.user_id;
+        const result = await caseService.getMyAuditCasesCount(user_id);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 更新案件阅读状态
+router.put('/cases/read', async (req, res) => {
+    try {
+        const { user_id, case_ids }= req.body;
+        const result = await caseService.readCases(user_id, case_ids);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // 更新案件状态
 router.post('/cases/:case_id/status', checkAudit, async (req, res) => {
     try {

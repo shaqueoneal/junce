@@ -4,6 +4,16 @@ const { generateMD5 } = require('../utils/hash');
 const mysql = require('mysql2');
 
 class CaseService {
+    statusMap = {
+        'count_to_submit': '待提交',
+        'count_to_audit': '待审核',
+        'count_audited': '已审核',
+        'count_accepted': '已受理',
+        'count_underway': '维权中',
+        'count_success': '维权成功',
+        'count_failed': '维权失败',
+        'count_closed': '已结案',
+    }
     async createCase(caseData) {
         const conn = await pool.getConnection();
         try {
@@ -140,7 +150,7 @@ class CaseService {
             SELECT c.*, u.nick_name, u.avatar_url 
             FROM cases c 
             LEFT JOIN users u ON c.user_id = u.id 
-            WHERE c.id = ?`;
+            WHERE c.id = ? AND c.is_alive = 1`;
 
             // 打印完整 SQL
             console.log('Case SQL:', mysql.format(caseSql, [id]));
@@ -226,7 +236,7 @@ class CaseService {
             SELECT c.*, u.nick_name, u.avatar_url 
             FROM cases c 
             LEFT JOIN users u ON c.user_id = u.id 
-            WHERE c.id = ?`;
+            WHERE c.id = ? AND c.is_alive = 1`;
 
             // 打印完整 SQL
             console.log('Case SQL:', mysql.format(caseSql, [caseId]));
@@ -246,7 +256,7 @@ class CaseService {
             // 如果是主案件，获取子案件
             let subCases = [];
             if (!caseInfo[0].is_sub) {
-                [subCases] = await conn.query('SELECT * FROM cases WHERE primary_id = ?', [caseId]);
+                [subCases] = await conn.query('SELECT * FROM cases WHERE primary_id = ? AND is_alive = 1', [caseId]);
             }
 
             return {
@@ -314,7 +324,7 @@ class CaseService {
 
         const conn = await pool.getConnection();
         try {
-            const [existing] = await conn.query('SELECT id FROM cases WHERE id = ?', [case_id]);
+            const [existing] = await conn.query('SELECT id FROM cases WHERE id = ? AND is_alive = 1', [case_id]);
         
             if (existing.length === 0) {
                 throw new Error('案件不存在');
@@ -497,6 +507,104 @@ class CaseService {
         });
     }
 
+    async readCases(userId, caseIds) {
+        const conn = await pool.getConnection();
+        try {
+            const query = `
+                UPDATE cases SET is_read = 1 WHERE user_id=(?) AND id IN (?)   
+            `;
+            const values = [userId, caseIds];
+            await conn.query(query, values);
+
+            return { success: true };
+        } catch (error) {
+            console.error('Error in readCases:', error);
+            throw error;
+        } finally {
+            conn.release();
+        }
+    }
+
+    async getMyUnreadCasesCount(userId) {
+        const conn = await pool.getConnection();
+        try {
+            let query = `
+                SELECT 
+                    COUNT(CASE WHEN status = '待提交' THEN 1 END) AS count_to_submit,
+                    COUNT(CASE WHEN status = '待审核' THEN 1 END) AS count_to_audit,
+                    COUNT(CASE WHEN status = '已审核' THEN 1 END) AS count_audited,
+                    COUNT(CASE WHEN status = '已受理' THEN 1 END) AS count_accepted,
+                    COUNT(CASE WHEN status = '维权中' THEN 1 END) AS count_underway,
+                    COUNT(CASE WHEN status = '维权成功' THEN 1 END) AS count_success,
+                    COUNT(CASE WHEN status = '维权失败' THEN 1 END) AS count_failed,
+                    COUNT(CASE WHEN status = '已结案' THEN 1 END) AS count_closed
+                FROM cases 
+                WHERE user_id = ? AND is_alive = 1 AND is_read = 0
+            `;
+            const [list] = await conn.query(query, [userId]);
+            console.log('getMyUnreadCasesCount SQL:', mysql.format(query, [userId]));
+            // [{count_to_submit: 1, count_to_audit: 1, count_audited: 1, count_accepted: 1, count_underway: 1, count_success: 1, count_failed: 1, count_closed: 1}]
+            console.log('unread list:', list);
+            let newList = [];
+            Object.keys(list[0]).forEach(key => {
+                let newObj = {};
+                newObj.status = this.statusMap[key];
+                newObj.count = list[0][key] || 0;
+                if (key === 'count_closed') {
+                    newObj.count = list[0]['count_success'] + list[0]['count_failed'] + newObj.count;
+                }
+                newList.push(newObj);
+            });
+
+            return newList;
+        } catch (error) {
+            console.error('Error in getMyUnreadCasesCount:', error);
+            throw error;
+        } finally {
+            conn.release();
+        }
+    }
+
+    async getMyAuditCasesCount(userId) {
+        const conn = await pool.getConnection();
+        try {
+            let query = `
+                SELECT 
+                    COUNT(CASE WHEN status = '待审核' THEN 1 END) AS count_to_audit,
+                    COUNT(CASE WHEN status = '已审核' THEN 1 END) AS count_audited,
+                    COUNT(CASE WHEN status = '已受理' THEN 1 END) AS count_accepted,
+                    COUNT(CASE WHEN status = '维权中' THEN 1 END) AS count_underway,
+                    COUNT(CASE WHEN status = '维权成功' THEN 1 END) AS count_success,
+                    COUNT(CASE WHEN status = '维权失败' THEN 1 END) AS count_failed,
+                    COUNT(CASE WHEN status = '已结案' THEN 1 END) AS count_closed
+                FROM cases 
+                WHERE is_alive = 1
+            `;
+            const [list] = await conn.query(query);
+            console.log('list:', list);
+            // [{count_to_submit: 1, count_to_audit: 1, count_audited: 1, count_accepted: 1, count_underway: 1, count_success: 1, count_failed: 1, count_closed: 1}]
+
+            let newList = [];
+            Object.keys(list[0]).forEach(key => {
+                let newObj = {};
+                newObj.status = this.statusMap[key];
+                newObj.count = list[0][key] || 0;
+                if (key === 'count_closed') {
+                    newObj.count = list[0]['count_success'] + list[0]['count_failed'] + newObj.count;
+                }
+                newList.push(newObj);
+            });
+
+            return newList;
+        } catch (error) {
+            console.error('Error in getMyCasesUnread:', error);
+            throw error;
+        } finally {
+            conn.release();
+        }
+        
+    }
+
     getMyCases(userId, status, page_num, page_size) {
         let params = {
             filters: [{
@@ -585,9 +693,9 @@ class CaseService {
             SELECT c.*, u.nick_name, u.avatar_url 
             FROM cases c 
             LEFT JOIN users u ON c.user_id = u.id
-            WHERE 1=1
+            WHERE c.is_alive = 1
         `;
-        let countQuery = 'SELECT COUNT(*) as total FROM cases c WHERE 1=1';
+        let countQuery = 'SELECT COUNT(*) as total FROM cases c WHERE c.is_alive = 1';
         let params = [];
         let orderClause = '';
 
